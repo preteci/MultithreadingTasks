@@ -1,15 +1,13 @@
 using Moq;
 using System.Net;
 using static TASK2.Program;
-using static TASK2.Program.Downloader;
 using System.Net.Http;
 using Moq.Protected;
-using static TASK2TEST.Task2Tests;
 
 
 namespace TASK2TEST
 {
-    public class Task2Tests
+    public class UnitTestTask2
     {
         [SetUp]
         public void Setup()
