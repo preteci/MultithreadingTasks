@@ -4,26 +4,26 @@ using System.Text.Json.Nodes;
 
 namespace TASK2
 {
-    internal class Program
+    public class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             Downloader client = new Downloader();
-            client.Download();
+            await client.Download();
         }
 
 
         public class Downloader
         { 
-            public void Download()
+            public async Task Download()
             {
                 int maxDownloads = 10;
                 string jsonUrl = "https://jsonplaceholder.typicode.com/photos";
                 SemaphoreSlim throtller = new SemaphoreSlim(maxDownloads);
-
-                List<string> thumbnailURL = GetThumbnailURL(jsonUrl);
+                HttpClient client = new HttpClient();
+                List<string> thumbnailURL = await GetThumbnailURL(jsonUrl, client);
                 List<Thread> downloadThreads = new List<Thread>();
-                int throttlingDelayMilliseconds = 500;
+                int throttlingDelayMilliseconds = 200;
 
                 for (int i = 0; i < 100; i++)
                 {
@@ -60,9 +60,9 @@ namespace TASK2
 
 
         // method for getting all the thumbails
-        static List<String> GetThumbnailURL(string jsonUrl)
+        public static async Task<List<String>> GetThumbnailURL(string jsonUrl, HttpClient client)
         {
-            using (HttpClient client = new HttpClient())
+            using (client)
             {
                 string jsonResponse = client.GetStringAsync(jsonUrl).Result;
                 JArray jsonArray = JArray.Parse(jsonResponse);
@@ -78,11 +78,11 @@ namespace TASK2
             }
         }
 
-        static void DownloadImage(string url)
+        public static async void DownloadImage(string url)
         {
             using(HttpClient client = new HttpClient())
             {
-               
+                
                     byte[] imageData = client.GetByteArrayAsync(url).Result;
                     string fileName = Path.GetFileName(url);
                     fileName = fileName + ".jpg";
@@ -94,7 +94,6 @@ namespace TASK2
                     }
 
                     Console.WriteLine($"Downlaoded: {fileName}");
-               
             }
         }
     }
