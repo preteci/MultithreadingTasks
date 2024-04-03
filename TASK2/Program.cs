@@ -25,7 +25,7 @@ namespace TASK2
                 List<Thread> downloadThreads = new List<Thread>();
                 int throttlingDelayMilliseconds = 200;
 
-                for (int i = 0; i < 100; i++)
+                for (int i = 0; i < thumbnailURL.Count; i++)
                 {
 
                     throtller.Wait();
@@ -34,7 +34,9 @@ namespace TASK2
                     {
                         try
                         {
-                            DownloadImage(thumbnailURL[i]);
+                            HttpClient client = new HttpClient();
+                            Task downloadImage = Task.Run(() => DownloadImage(thumbnailURL[i], client));
+                            downloadImage.Wait();
                         }
                         finally
                         {
@@ -53,7 +55,7 @@ namespace TASK2
                     thread.Join();
                 }
 
-                Console.WriteLine("All images downloaded successfully.");
+                Console.WriteLine("End of program.");
             }
         
         }
@@ -61,29 +63,39 @@ namespace TASK2
 
         // method for getting all the thumbails
         public static async Task<List<String>> GetThumbnailURL(string jsonUrl, HttpClient client)
-        {
-            using (client)
+        {   
+            List<string> thumbnailUrls = new List<string>();
+            try
             {
-                string jsonResponse = client.GetStringAsync(jsonUrl).Result;
-                JArray jsonArray = JArray.Parse(jsonResponse);
-                List<string> thumbnailUrls = new List<string>();
-
-                foreach (JObject item in jsonArray)
+                using (client)
                 {
-                    string thumbnailUrl = item.Value<string>("thumbnailUrl");
-                    thumbnailUrls.Add(thumbnailUrl);
-                }
+                    string jsonResponse = client.GetStringAsync(jsonUrl).Result;
+                    JArray jsonArray = JArray.Parse(jsonResponse);
 
-                return thumbnailUrls;
+                    foreach (JObject item in jsonArray)
+                    {
+                        string thumbnailUrl = item.Value<string>("thumbnailUrl");
+                        thumbnailUrls.Add(thumbnailUrl);
+                    }
+
+                    return thumbnailUrls;
+                }
             }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"There was a error trying to get thumbnail URL's: \n {ex.Message}");
+            }
+            return thumbnailUrls;
+
         }
 
-        public static async void DownloadImage(string url)
+        public static async Task DownloadImage(string url, HttpClient client)
         {
-            using(HttpClient client = new HttpClient())
+            try
             {
-                
-                    byte[] imageData = client.GetByteArrayAsync(url).Result;
+                using (client)
+                {
+                    byte[] imageData = await client.GetByteArrayAsync(url);
                     string fileName = Path.GetFileName(url);
                     fileName = fileName + ".jpg";
                     string filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
@@ -94,6 +106,11 @@ namespace TASK2
                     }
 
                     Console.WriteLine($"Downlaoded: {fileName}");
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"An Error has occurred: {ex.Message}");
             }
         }
     }
