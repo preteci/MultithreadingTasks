@@ -20,18 +20,30 @@ namespace TASK2TEST
         public class HttpMessageHandlerMock : HttpMessageHandler
         {
             public string ContentString { get; set; }
-
-
+            public byte[] ByteArray { get; set; }
             protected override Task<HttpResponseMessage> SendAsync(
                 HttpRequestMessage request,
                 CancellationToken cancellationToken)
             {
-                return Task.FromResult(new HttpResponseMessage()
+                if(ContentString == null)
                 {
-                    StatusCode = HttpStatusCode.OK,
-                    Content = new StringContent(ContentString)
-                });
+                    return Task.FromResult(new HttpResponseMessage()
+                    {
+                        StatusCode = HttpStatusCode.OK,
+                        Content = new ByteArrayContent(ByteArray)
+                    });
+                }
+                else
+                {
+                    return Task.FromResult(new HttpResponseMessage()
+                    {
+                        StatusCode = HttpStatusCode.OK,
+                        Content = new StringContent(ContentString)
+                    }); 
+                }
+               
             }
+            
         }
 
 
@@ -87,19 +99,37 @@ namespace TASK2TEST
         [Test]
         public async Task DownloadImage_ImageHasValidUrl()
         {
+
             string testUrl = "https://example.com/test_image.jpg";
-            byte[] imageData = new byte[] { 0x01, 0x02, 0x03 }; // Sample image data
-
-
+            byte[] testData = new byte[] { 0x01, 0x02, 0x03 }; // Sample image data
+            HttpMessageHandlerMock mockClient = new HttpMessageHandlerMock();
+            mockClient.ByteArray = testData;
+            var httpClient = new HttpClient(mockClient);
 
             // Act
-            await DownloadImage(testUrl, );
+            await DownloadImage(testUrl, httpClient);
+
+            // Assert
+            string expectedPath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetFileName(testUrl) + ".jpg");
+            Assert.IsTrue(File.Exists(expectedPath));
+
+            File.Delete(expectedPath);
+
+        }
+
+        [Test]
+        public async Task DownloadImage_ImageIsNotValid()
+        {
+            string testUrl = "";
+            byte[] testData = null;
+            HttpMessageHandlerMock mockClient = new HttpMessageHandlerMock();
+            var httpClient = new HttpClient(mockClient);
+            mockClient.ByteArray = testData;
+
+            await DownloadImage(testUrl, httpClient);
 
             string expectedPath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetFileName(testUrl) + ".jpg");
-            Assert.IsTrue(File.Exists(expectedPath)); // Check if file exists
-
-            // Cleanup (optional)
-            File.Delete(expectedPath);
+            Assert.IsFalse(File.Exists(expectedPath));
 
         }
     }
